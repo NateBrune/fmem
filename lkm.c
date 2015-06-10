@@ -341,13 +341,6 @@ static int memory_open(struct inode * inode, struct file * filp)
 	switch (iminor(inode)) {
 		case 1:
 			filp->f_op = &mem_fops;
-
-//Older kernels (<19) does not have directly_mappable_cdev_bdi
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,19)
-#else
-			filp->f_mapping->backing_dev_info =
-				&directly_mappable_cdev_bdi;
-#endif 
 			break;
 
 		default:
