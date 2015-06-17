@@ -1,5 +1,7 @@
 fmem 1.5.0
 
+This repo is just a github mirror of the original fmem module.
+
 This module creates /dev/fmem device,
 that can be used for dumping physical memory,
 without limits of /dev/mem (1MB/1GB, depending on distribution)
