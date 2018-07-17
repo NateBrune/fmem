@@ -286,8 +286,12 @@ static loff_t memory_lseek(struct file * file, loff_t offset, int orig)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
 	mutex_lock(&file->f_dentry->d_inode->i_mutex);
 #else
+#	if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
 	mutex_lock(&file->f_path.dentry->d_inode->i_mutex);
-#endif 
+#	else
+	inode_lock(file->f_path.dentry->d_inode);
+#	endif
+#endif
 
 	switch (orig) {
 		case 0:
@@ -307,8 +311,12 @@ static loff_t memory_lseek(struct file * file, loff_t offset, int orig)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
 	mutex_unlock(&file->f_dentry->d_inode->i_mutex);
 #else
+#	if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
 	mutex_unlock(&file->f_path.dentry->d_inode->i_mutex);
-#endif 
+#	else
+	inode_unlock(file->f_path.dentry->d_inode);
+#	endif
+#endif
 
 	return ret;
 }
