@@ -29,11 +29,16 @@
 #include <linux/ptrace.h>
 #include <linux/device.h>
 #include <linux/highmem.h>
-#include <linux/bootmem.h>
 #include <linux/pfn.h>
 #include <linux/version.h>
 
 #include "debug.h"
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,20,0)
+# include <linux/bootmem.h>
+#else
+# include <linux/memblock.h>
+#endif
 
 #ifdef CONFIG_IA64
 # include <linux/efi.h>
