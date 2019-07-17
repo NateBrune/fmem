@@ -9,7 +9,7 @@ fmem$(VERSION)-objs := lkm.o
 all:	clean fmem$(VERSION)
 
 fmem$(VERSION) : clean
-	make -C $(KERNEL_SRC_DIR) SUBDIRS=`pwd` modules
+	make -C $(KERNEL_SRC_DIR) KBUILD_EXTMOD=`pwd` modules
 
 install:
 	./run.sh
