@@ -1,6 +1,8 @@
 fmem 1.6.0
 
-This repo is just a github mirror of the original fmem module.
+This repo is was originally a github mirror of the original fmem module.
+Later this repo became a maintained version of fmem to account for a changing Linux kernel.
+Bug reports and patches welcome.
 
 This module creates /dev/fmem device,
 that can be used for dumping physical memory,
@@ -15,8 +17,6 @@ Cloned from linux/drivers/char/mem.c
 Original name of this tool was fdump, 
 which was conflict with already existing tool,
 so name was changed to fmem  
-
-Bug reports and patches welcome.
 
 2009,2010 niekt0@hysteria.sk
 
