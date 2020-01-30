@@ -31,6 +31,7 @@
 #include <linux/highmem.h>
 #include <linux/pfn.h>
 #include <linux/version.h>
+#include <linux/slab.h>
 
 #include "debug.h"
 
@@ -46,9 +47,9 @@
 
 
 // this is major number used for our new dumping device.
-// 241 should be in free range 
+// 341 should be in free range 
 // In future maybe I should request number dynamically
-#define FMEM_MAJOR 241
+#define FMEM_MAJOR 341
 #define FMEM_MINOR 1
 
 MODULE_LICENSE("GPL");
