@@ -80,18 +80,15 @@ const char program_name[] = "fmem";
 
 void *my_xlate_dev_mem_ptr(unsigned long phys)
 {
-
 	void *addr=NULL;
 	unsigned long start = phys & PAGE_MASK;
 	unsigned long pfn = PFN_DOWN(phys);
 
-        /* If page is RAM, we can use __va. Otherwise ioremap and unmap. */
-        if ((*guess_page_is_ram)(start >> PAGE_SHIFT)) {
-
+	/* If page is RAM, we can use __va. Otherwise ioremap and unmap. */
+	if ((*guess_page_is_ram)(start >> PAGE_SHIFT)) {
 		if (PageHighMem(pfn_to_page(pfn))) {
-                /* The buffer does not have a mapping.  Map it! */
-
-		        addr = kmap(pfn_to_page(pfn));	
+			/* The buffer does not have a mapping.  Map it! */
+			addr = kmap(pfn_to_page(pfn));
 			return addr;
 		}
 		return __va(phys);
@@ -115,8 +112,8 @@ void my_unxlate_dev_mem_ptr(unsigned long phys,void *addr)
 	if ((*guess_page_is_ram)(phys >> PAGE_SHIFT)) {
 	
 		if (PageHighMem(pfn_to_page(pfn))) { 
-		/* Need to kunmap kmaped memory*/
-		        kunmap(pfn_to_page(pfn));
+			/* Need to kunmap kmaped memory*/
+			kunmap(pfn_to_page(pfn));
 			//dbgprint ("unxlate: Highmem detected");
 		}
 		return;
@@ -148,9 +145,7 @@ static inline int uncached_access(struct file *file, unsigned long addr)
 	return !(efi_mem_attributes(addr) & EFI_MEMORY_WB);
 #elif defined(CONFIG_MIPS)
 	{
-		extern int __uncached_access(struct file *file,
-					     unsigned long addr);
-
+		extern int __uncached_access(struct file *file, unsigned long addr);
 		return __uncached_access(file, addr);
 	}
 #else
@@ -174,6 +169,8 @@ static ssize_t read_mem(struct file * file, char __user * buf,
 	unsigned long p = *ppos;
 	ssize_t read, sz;
 	char *ptr;
+	u8 *bounce_buffer = (u8*)kmalloc(PAGE_SIZE, GFP_KERNEL);
+	ssize_t return_value;
 
 //	if (!valid_phys_addr_range(p, count))  //good bye;)
 //		return -EFAULT;
@@ -187,8 +184,10 @@ static ssize_t read_mem(struct file * file, char __user * buf,
 		if (sz > count) 
 			sz = count; 
 		if (sz > 0) {
-			if (clear_user(buf, sz))
-				return -EFAULT;
+			if (clear_user(buf, sz)) {
+				return_value = -EFAULT;
+				goto tear_down;
+			}
 			buf += sz; 
 			p += sz; 
 			count -= sz; 
@@ -215,15 +214,19 @@ static ssize_t read_mem(struct file * file, char __user * buf,
 		 */
 		ptr = my_xlate_dev_mem_ptr(p);
 
-		if (!ptr){
+		if (!ptr) {
 			dbgprint ("xlate FAIL, p: %lX",p);
-			return -EFAULT;
+			return_value = -EFAULT;
+			goto tear_down;
 		}
 
-		if (copy_to_user(buf, ptr, sz)) {
+		// First copy to bounce buffer and then to user.
+		memcpy(bounce_buffer, ptr, sz);
+		if (copy_to_user(buf, bounce_buffer, sz)) {
 			dbgprint ("copy_to_user FAIL, ptr: %p",ptr);
 			my_unxlate_dev_mem_ptr(p, ptr);
-			return -EFAULT;
+			return_value = -EFAULT;
+			goto tear_down;
 		}
 
 		my_unxlate_dev_mem_ptr(p, ptr);
@@ -235,7 +238,11 @@ static ssize_t read_mem(struct file * file, char __user * buf,
 	}
 
 	*ppos += read;
-	return read;
+	return_value = read;
+
+ tear_down:
+	kfree(bounce_buffer);
+	return return_value;
 }
 
 static ssize_t write_mem(struct file * file, const char __user * buf, 
@@ -427,10 +434,10 @@ static int func_callback(void *data, const char *name, struct module *module, un
 		guess_page_is_ram = (void *)addr;
 		dbgprint ("set guess_page_is_ram: %p, %p",guess_page_is_ram, module);
 	}
-	if (strcmp(name,"unxlate_dev_mem_ptr") == 0 && module == NULL){
-                guess_unxlate_dev_mem_ptr = (void *)addr;
+	if (strcmp(name,"unxlate_dev_mem_ptr") == 0 && module == NULL) {
+		guess_unxlate_dev_mem_ptr = (void *)addr;
 		dbgprint ("set guess_unxlate_dev_mem_ptr: %p, %p",guess_unxlate_dev_mem_ptr,module);
-        }
+	}
 	return 0;
 }
 
