@@ -96,7 +96,7 @@ void *my_xlate_dev_mem_ptr(unsigned long phys)
 	}
 
 	// Not RAM, so it is some device (can be bios for example)
-	addr = (void __force *)ioremap_nocache(start, PAGE_SIZE);
+	addr = (void __force *)ioremap_cache(start, PAGE_SIZE);
 	if (addr)
 		addr = (void *)((unsigned long)addr | (phys & ~PAGE_MASK));
 	return addr;
