@@ -2,12 +2,12 @@
 
 a1="0x"`cat /proc/kallsyms | grep ' page_is_ram' | head -1 |cut -d ' ' -f 1`
 
-
 if [ "$a1" == "0x" ]; then
 	echo "Cannot find symbol 'page_is_ram'";
 	exit;
 fi
 
+rmmod fmem
 echo -n "Module: insmod fmem.ko a1=$a1 : ";
 insmod fmem.ko a1="$a1" || exit;
 echo "OK";
