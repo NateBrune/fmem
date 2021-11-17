@@ -24,7 +24,6 @@
 #include <linux/moduleparam.h>
 #include <linux/mm.h>
 #include <linux/vmalloc.h>
-#include <linux/raw.h>
 #include <linux/tty.h>
 #include <linux/ptrace.h>
 #include <linux/device.h>
