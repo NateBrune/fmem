@@ -291,10 +291,15 @@ static loff_t memory_lseek(struct file * file, loff_t offset, int orig)
 {
 	loff_t ret;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
-	mutex_lock(&file->f_path.dentry->d_inode->i_mutex);
+//Older kernels (<20) uses f_dentry instead of f_path.dentry
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
+	mutex_lock(&file->f_dentry->d_inode->i_mutex);
 #else
+# if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
+	mutex_lock(&file->f_path.dentry->d_inode->i_mutex);
+# else
 	inode_lock(file->f_path.dentry->d_inode);
+# endif
 #endif
 
 	switch (orig) {
@@ -311,10 +316,15 @@ static loff_t memory_lseek(struct file * file, loff_t offset, int orig)
 		default:
 			ret = -EINVAL;
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
-	mutex_unlock(&file->f_path.dentry->d_inode->i_mutex);
+//Older kernels (<20) uses f_dentry instead of f_path.dentry
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)
+	mutex_unlock(&file->f_dentry->d_inode->i_mutex);
 #else
+# if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
+	mutex_unlock(&file->f_path.dentry->d_inode->i_mutex);
+# else
 	inode_unlock(file->f_path.dentry->d_inode);
+# endif
 #endif
 	return ret;
 }
@@ -378,9 +388,17 @@ static int __init chr_dev_init(void)
 	if (register_chrdev(FMEM_MAJOR,"fmem",&memory_fops))
 		printk("unable to get major %d for memory devs\n", FMEM_MAJOR);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
 	mem_class = class_create(THIS_MODULE, "fmem");
+#else
+	mem_class = class_create("fmem");
+#endif
 	for (i = 0; i < ARRAY_SIZE(devlist); i++) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26)
+		device_create(mem_class, NULL, MKDEV(FMEM_MAJOR, devlist[i].minor), devlist[i].name);
+#else
 		device_create(mem_class, NULL, MKDEV(FMEM_MAJOR, devlist[i].minor), NULL, devlist[i].name);
+#endif
 	}
 	return 0;
 }
@@ -474,7 +492,12 @@ int find_symbols(void)
 }
 
 /// Function executed upon loading module
-int __init init_module (void)
+int __init
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,0)
+init_module (void)
+#else
+fmem_mod_init (void)
+#endif
 {
 	dbgprint("init");
 	find_symbols();
@@ -485,7 +508,12 @@ int __init init_module (void)
 }
 
 /// Function executed when unloading module
-void __exit cleanup_module (void)
+void __exit
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,0)
+cleanup_module (void)
+#else
+fmem_mod_exit (void)
+#endif
 {
 	dbgprint("destroying fmem device");
 
@@ -496,3 +524,8 @@ void __exit cleanup_module (void)
 
 	dbgprint("exit");
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,0)
+module_init(fmem_mod_init);
+module_exit(fmem_mod_exit);
+#endif
