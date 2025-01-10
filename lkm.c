@@ -376,9 +376,15 @@ static int __init chr_dev_init(void)
 {
 	int i;
 	if (register_chrdev(FMEM_MAJOR,"fmem",&memory_fops))
-		printk("unable to get major %d for memory devs\n", FMEM_MAJOR);
+	  printk("unable to get major %d for memory devs\n", FMEM_MAJOR);
 
+	// fixing a problem that is caused by Kernels newer than 6.4 since since then the class_create only expects on parameter
+	#if(LINUX_VERSION_CODE >=KERNEL_VERSION(6, 4, 0))
+	mem_class = class_create("fmem");
+	#else
 	mem_class = class_create(THIS_MODULE, "fmem");
+	#endif
+	
 	for (i = 0; i < ARRAY_SIZE(devlist); i++) {
 		device_create(mem_class, NULL, MKDEV(FMEM_MAJOR, devlist[i].minor), NULL, devlist[i].name);
 	}
