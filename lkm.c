@@ -529,8 +529,7 @@ static void __exit dummy_exit (void)
 }
 
 
-
-#endif
-
 module_init(dummy_init);
 module_exit(dummy_exit);
+#endif
+
