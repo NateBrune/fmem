@@ -478,7 +478,9 @@ int find_symbols(void)
 
 	return 0;
 }
-
+///the Linux version is only a guess based on some other github issues I found 
+///also this is a more hacky way to fix this, but trying to maintain backwards compatibility 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,4)
 /// Function executed upon loading module
 int __init init_module (void)
 {
@@ -489,7 +491,6 @@ int __init init_module (void)
 	chr_dev_init();
 	return 0;
 }
-
 /// Function executed when unloading module
 void __exit cleanup_module (void)
 {
@@ -502,3 +503,33 @@ void __exit cleanup_module (void)
 
 	dbgprint("exit");
 }
+
+#else
+/// Function executed upon loading module
+static int __init dummy_init (void)
+{
+	dbgprint("init");
+	find_symbols();
+
+	// Create device itself (/dev/fmem)
+	chr_dev_init();
+	return 0;
+}
+/// Function executed when unloading module
+static void __exit dummy_exit (void)
+{
+	dbgprint("destroying fmem device");
+
+	// Clean up
+	unregister_chrdev(FMEM_MAJOR, "fmem");
+	device_destroy(mem_class, MKDEV(FMEM_MAJOR, FMEM_MINOR));
+	class_destroy(mem_class);
+
+	dbgprint("exit");
+}
+
+
+module_init(dummy_init);
+module_exit(dummy_exit);
+#endif
+
